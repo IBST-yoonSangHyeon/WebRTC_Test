@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <h1>SDP</h1>
+        <textarea id="sdp" style="width: 100%"></textarea> 
+        <button onclick="createOffer();">생성</button>
+    </div>
+
+    <div>
+        <h1>setRemoteSDP</h1>
+        <textarea id="setRemoteSDP" style="width: 100%"></textarea>
+        <button onclick="setAnswer()">처리</button>
+    </div>
+
+    <div>
+        <h1>message Send</h1>
+        <textarea id="msgSend" style="width: 100%"></textarea>
+        <button onclick="sendMsg()">보냄</button>
+    </div>
+
+    <div>
+        <h1>Get Message LOG</h1>
+        <textarea id="msgLog" style="width: 100%;height: 500px;"></textarea>
+    </div>
+    <script>
+        const lc = new RTCPeerConnection();
+        const dc = lc.createDataChannel("hello");
+        const msgLogEle = document.getElementById("msgLog");
+
+        dc.onmessage = e => {
+            let msgLogEleVal =  msgLogEle.value;
+            msgLogEle.innerHTML =  msgLogEleVal + "\n" + "Just got a message "+ e.data + "\n";
+            console.log("Just got a message "+ e.data);
+        };
+        dc.onopen = e => {
+            let msgLogEleVal =  msgLogEle.value;
+            msgLogEle.innerHTML =  msgLogEleVal + "\n" + "Connection opened" + "\n";
+            console.log("Connection opened")
+        };
+
+        const sdpEle = document.getElementById("sdp");
+
+        lc.onicecandidate = e => { 
+            
+            sdpEle.innerHTML = JSON.stringify(lc.localDescription).toString();
+            console.log("New Ice Candidate! reprinting SDP" + JSON.stringify(lc.localDescription))
+        };
+
+        function createOffer(){
+            lc.createOffer().then(o => lc.setLocalDescription(o)).then((a => console.log("set successfully!")));
+        }
+
+        const setRemoteSDPEle = document.getElementById("setRemoteSDP");
+        let answer = "";
+        function setAnswer() {
+            answer = JSON.parse(setRemoteSDPEle.value);
+            lc.setRemoteDescription(answer);
+        }
+
+        const msgSendEle = document.getElementById("msgSend");
+        function  sendMsg() {
+            let msgLogEleVal =  msgLogEle.value;
+            msgLogEle.innerHTML =  msgLogEleVal + msgSendEle.value;
+            dc.send(msgSendEle.value);
+            msgSendEle.value = "";
+        }
+    </script>
+</body>
+</html>
