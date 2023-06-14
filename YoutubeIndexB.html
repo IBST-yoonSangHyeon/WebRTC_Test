@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        // 사용하는 채널 그대로 사용하므로 채널 생성 X
+        const offer = ""; // Offer SDP 데이터
+        const rc = new RTCPeerConnection();
+        rc.onicecandidate = e => console.log("New Ice Candidate! reprinting SDP" + JSON.stringify(rc.localDescription));
+        rc.ondatachannel = e => {
+            rc.dc = e.channel;
+            rc.dc.onmessage = e => console.log("new message from client! "+ e.data);
+            rc.dc.onopen = e => console.log("Connection OPEND!!!!!");
+        }
+        rc.setRemoteDescription(offer).then(a => console.log("offer set!"));
+        rc.createAnswer().then(a => rc.setLocalDescription(a)).then(a => console.log("answer created"));
+
+        // offer에게 메시지 보냄
+        rc.dc.send("fine what about you fam");
+    </script>
+</body>
+</html>
