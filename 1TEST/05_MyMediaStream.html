@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <meta name="description" content="로컬 스트리밍 처리">
+</head>
+<body>
+    <video id="localVideo" autoplay playsinline controls="false"></video>
+    <script>
+        
+        async function playVideoFromCamera() {
+            try {
+                const constraints = {'video': true, 'audio': true};
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const videoElement = document.querySelector('video#localVideo');
+                videoElement.srcObject = stream;
+            } catch(error) {
+                console.error('Error opening video camera.', error);
+            }
+        }            
+        playVideoFromCamera();
+    </script>
+</body>
+</html>

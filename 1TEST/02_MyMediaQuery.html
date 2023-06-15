@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>디바이스 정보 쿼리로 얻기</title>
+    <meta name="description" content="디바이스의 정보들을 쿼리로 얻어서 사용자가 선택하도록 유도하는 방식이 가능하다.">
+</head>
+<body>
+    <script>
+        async function getConnectedDevices(type) {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.filter(device => device.kind === type)
+        }
+
+        const videoCameras = getConnectedDevices('videoinput');
+        const audioMics = getConnectedDevices('audioinput');
+
+        console.log('Cameras found:', videoCameras);
+        console.log('Cameras found:', 
+        videoCameras
+        .then((data) => {
+            console.log('Cameras data', data)
+            data.map((deviceInfo) => {
+                console.log('Cameras deviceInfo' , deviceInfo)
+            })
+        })
+        .catch(e => console.log('e : ', e))
+        );
+
+        console.log('Mics found:', audioMics);
+        console.log('Mics found:', 
+        audioMics
+        .then((data) => {
+            console.log('Mics data', data)
+            data.map((deviceInfo) => {
+                console.log('Mics deviceInfo' , deviceInfo)
+            })
+        })
+        .catch(e => console.log('e : ', e))
+        );
+
+    </script>
+</body>
+</html>

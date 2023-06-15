@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나의 디바이스 변경 실시간 감지</title>
+    <meta name="description" content="디바이스가 변경이 있는지 감지하는 것이다.(구글 WEBRTC의 예제를 그대로 사용하면 Promise에 관한 에러가 발생하여 수정함.)">
+
+</head>
+<body>
+    <select id="availableCameras"></select>
+    <select id="availableMic"></select>
+    <script>
+        const listElement = document.querySelector('select#availableCameras');
+        const listMicEle = document.querySelector('select#availableMic');
+        async function init () {
+            // Updates the select element with the provided set of cameras
+            async function updateCameraList(cameras) { // 해당 함수 내부적으로 수정됨.
+                listElement.innerHTML = '';
+                cameraOptions = [];
+                for (const camera of cameras) {
+                    const cameraOption = document.createElement('option');
+                    cameraOption.label = camera.label;
+                    cameraOption.value = camera.deviceId;
+                    cameraOptions.push(cameraOption);
+                }
+                cameraOptions.forEach(cameraOption => {
+                    listElement.add(cameraOption)
+                });
+            }
+
+            async function updateMicList(audios) { 
+                listMicEle.innerHTML = '';
+                audioOptions = [];
+                for (const camera of audios) {
+                    const cameraOption = document.createElement('option');
+                    cameraOption.label = camera.label;
+                    cameraOption.value = camera.deviceId;
+                    audioOptions.push(cameraOption);
+                }
+                audioOptions.forEach(cameraOption => {
+                    listMicEle.add(cameraOption)
+                });
+            }
+
+            // Fetch an array of devices of a certain type
+            async function getConnectedDevices(type) {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                console.log(devices);
+                const deviceFilter =  devices.filter(device => device.kind === type);
+                return deviceFilter;
+            }
+
+            // Get the initial set of cameras connected
+            const videoCameras = await getConnectedDevices('videoinput');
+            const audioMics = await getConnectedDevices('audioinput');
+            await updateCameraList(videoCameras);
+            await updateMicList(audioMics);
+
+            // Listen for changes to media devices and update the list accordingly
+            navigator.mediaDevices.addEventListener('devicechange', async (event) => {
+                const newCameraList = getConnectedDevices('video');
+                await updateCameraList(newCameraList);
+            });
+        }
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <meta name="description" content="미디어 제약조건 해상도 또는 아이디로 제약조건을 걸어서 처리한다.">
+</head>
+<body>
+    <script>
+        async function init() {
+            async function getConnectedDevices(type) {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                return devices.filter(device => device.kind === type)
+            }
+
+            // Open camera with at least minWidth and minHeight capabilities
+            async function openCamera(cameraId, minWidth, minHeight) {
+                const constraints = {
+                    'audio': {'echoCancellation': true},
+                    'video': {
+                        'deviceId': cameraId,
+                        'width': {'min': minWidth},
+                        'height': {'min': minHeight}
+                        }
+                    }
+
+                return await navigator.mediaDevices.getUserMedia(constraints);
+            }
+
+            const cameras = await getConnectedDevices('videoinput');
+            if (cameras && cameras.length > 0) {
+                // Open first available video camera with a resolution of 1280x720 pixels
+                const stream = await openCamera(cameras[0].deviceId, 1280, 720);
+                console.log('stream : ', stream);
+            }
+        }
+        init();
+    </script>
+</body>
+</html>
