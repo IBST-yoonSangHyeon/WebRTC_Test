@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        // 채널 및 제공함.
+        const lc = new RTCPeerConnection();
+        const dc = lc.createDataChannel("channel");
+        dc.onmessage = e => console.log("Just got a message "+ e.data);
+        dc.onopen = e => console.log("Connection opened");
+        lc.onicecandidate = e => console.log("New Ice Candidate! reprinting SDP" + JSON.stringify(lc.localDescription));
+        lc.createOffer().then(o => lc.setLocalDescription(o)).then((a => console.log("set successfully!")));
+
+        // 접속한 Peer의 정보
+        const answer = ""; // answer SDP 데이터
+        lc.setRemoteDescription(answer);
+
+
+        // 접속한 Peer에게 메시지 보냄
+        dc.send("Yo peer B what up!");
+
+        // 미디어 처리
+        //lc.addTrack()
+    </script>
+</body>
+</html>
