@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <meta name="description" content="deepch가 만든 RTSPtoWeb을 통신 예제 처리">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
+</head>
+<body>
+    <video id="video1" autoplay controls muted playsinline></video>
+    <input type="hidden" name="uuid" id="uuid" value="ibst0552997730">
+    <input type="hidden" name="channel" id="channel" value="1">
+    <script>
+        const webrtcServerUrl = "http://localhost:8084";
+        const uuid = document.getElementById("uuid").value;
+        const channel = document.getElementById("channel").value;
+        const video = document.getElementById("video1");
+        let webrtc, webrtcSendChannel;
+        let mediaStream;
+        async function run() {
+            mediaStream = new MediaStream();
+            video.srcObject = mediaStream;
+            webrtc = new RTCPeerConnection(
+                // {
+                //     iceServers: [{
+                //         urls: ["stun:stun.l.google.com:19302"]
+                //     }],
+                //     sdpSemantics: "unified-plan"
+                // }
+            );
+            let offer = await webrtc.createOffer(
+                {
+                    //iceRestart:true,
+                    offerToReceiveAudio:true,
+                    offerToReceiveVideo:true
+                }
+            );
+            webrtc.ontrack = (e) => {
+                console.log(e.streams.length + ' track is delivered');
+                console.log('ontrack');
+                mediaStream.addTrack(e.track);
+            }
+            webrtc.onnegotiationneeded = async () => {
+                console.log('onnegotiationneeded');
+            }
+
+            webrtc.onconnectionstatechange = (e) => {
+                console.log('connectionState webrtc.connectionState', webrtc.connectionState);
+                console.log('connectionState e', e);
+            }
+
+            webrtc.oniceconnectionstatechange = (e) => {
+                console.log('oniceconnectionstatechange', e);
+            }
+            webrtc.ondatachannel = (e) => {
+                console.log(ondatachannel);
+                console.log(e);
+            }
+            webrtc.onsignalingstatechange = signalingstatechange;
+            console.log(offer);
+            await webrtc.setLocalDescription(offer);
+        }
+
+        async function signalingstatechange () {
+            console.log('webrtc.signalingState : ', webrtc.signalingState);
+            if (webrtc.signalingState == 'have-local-offer') {
+                console.log('ddd2');
+                let url = webrtcServerUrl + "/stream/" + uuid + "/channel/" + channel + "/webrtc?uuid=" + uuid + '&channel=' + channel;
+                console.log('url : ', url);
+                $.post(url, {
+                    data: btoa(webrtc.localDescription.sdp)
+                }, function(data) {
+                    try {
+                        console.log(data);
+                        webrtc.setRemoteDescription(new RTCSessionDescription({
+                            type: 'answer',
+                            sdp: atob(data)
+                        }))
+                    } catch (e) {
+                        console.warn(e);
+                    }
+                }); 
+            } else if (webrtc.signalingState == 'stable') {
+                
+                /*
+                * There is no ongoing exchange of offer and answer underway.
+                * This may mean that the RTCPeerConnection object is new, in which case both the localDescription and remoteDescription are null;
+                * it may also mean that negotiation is complete and a connection has been established.
+                */
+            } else if (webrtc.signalingState == 'closed') {
+                /*
+                 * The RTCPeerConnection has been closed.
+                 */
+            } else {
+                console.log(`unhandled signalingState is ${webrtc.signalingState}`);
+            }
+        }
+        
+        run();
+    </script>
+</body>
+</html>
