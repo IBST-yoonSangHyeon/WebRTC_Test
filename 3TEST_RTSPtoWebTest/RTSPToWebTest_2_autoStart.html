@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <meta name="description" content="deepch가 만든 RTSPtoWeb을 통신 예제 (상태에 따라서 자동 재실행)처리">
+</head>
+<body>
+    <video id="video1" autoplay controls muted playsinline></video>
+    <input type="hidden" name="uuid" id="uuid" value="ibst0552997730">
+    <input type="hidden" name="channel" id="channel" value="1">
+    <script>
+        const webrtcServerUrl = "http://localhost:8084";
+        const videoEle =  document.getElementById("video1");
+        const inputuuidEle =  document.getElementById("uuid");
+        let inputChannelEle = document.getElementById("channel");
+        
+        let inputuuidVal = inputuuidEle.value;
+        let inputChannelVal = inputChannelEle.value;
+        let RTC, mediaStream ;
+        let sdpUrl = webrtcServerUrl + "/stream/" + inputuuidVal + "/channel/" + inputChannelVal + "/webrtc?uuid=" + inputuuidVal + '&channel=' + inputChannelVal;
+
+        console.log('inputuuidVal : ', inputuuidVal);
+        console.log('inputChannelVal : ', inputChannelVal);
+
+        async function run() {
+            mediaStream = new MediaStream();
+            videoEle.srcObject = mediaStream;
+
+            // RTCPeerConnection 객체 생성
+            RTC =  new RTCPeerConnection({
+                iceServers : [
+                    {
+                        urls: ["stun:stun.l.google.com:19302"],
+                    }
+                ]
+            });
+            // Offer 생성 
+            let offer = await RTC.createOffer(
+                {
+                    offerToReceiveAudio:true,
+                    offerToReceiveVideo:true
+                }
+            );
+
+            RTC.onicecandidate = e => { 
+                console.log(e);
+                console.log("새로운 아이스 후보! SDP 재 출력" + JSON.stringify(RTC.localDescription));
+                //console.log("New Ice Candidate! reprinting SDP" + JSON.stringify(RTC.localDescription));
+            }
+            
+            console.log('offer' , offer);
+
+            RTC.ontrack = (e) => {
+                console.log(e.streams.length + ' track is delivered');
+                console.log('ontrack');
+                mediaStream.addTrack(e.track);
+            }
+
+            RTC.onsignalingstatechange = async (e) => {
+                console.log('onsignalingstatechange e : ', e);
+                console.log('RTC.signalingState : ', RTC.signalingState);
+                console.log('RTC.localDescription.sdp : ', RTC.localDescription);
+                let url = sdpUrl;
+                if (RTC.signalingState == 'have-local-offer') { // local offer 생성됨
+                    console.log('signalingState have-local-offer');
+
+                    const formData = new FormData();
+                    formData.append("data", btoa(RTC.localDescription.sdp)); // 이진 문자열로부터 Base64 인코딩 된 ASCII 문자열을 생성해 반환함.
+
+                    fetch(url, {
+                        method: "POST",
+                        body : formData
+                    }).then((res) => res.text())
+                    .then((data) => {
+                        console.log('data', atob(data)); // Base64 인코딩된 문자열 데이터를 디코딩함.
+                        RTC.setRemoteDescription(new RTCSessionDescription({
+                            type : "answer",
+                            sdp : atob(data)
+                        }));
+                    });
+                } else if (RTC.signalingState == 'stable') { 
+                    // 경우 2가지 
+                    // 1. 진행중인 offer 또는 answer이 없음, 즉 localDescription과 remoteDescription 이 모두 null 이란 의미 
+                    // 2. 협상이 완료되고 연결이 설정되었음을 의미
+                    console.log('signalingState stable');
+                } else if (RTC.signalingState == 'closed') {
+                    // RTCPeerConnection이 닫힘
+                    console.log('signalingState cloased');
+                } else { 
+                    // 처리되지 않은 신호 상태
+                    console.log(`unhandled signalingState is ${webrtc.signalingState}`);
+                }   
+
+            }
+
+            let localDes = await RTC.setLocalDescription(offer);
+        }
+
+        
+
+
+        run();
+
+    </script>
+</body>
+</html>
