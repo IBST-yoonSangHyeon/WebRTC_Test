@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document(재실행 진짜 처리!!!!!)</title>
+    <meta name="description" content="deepch가 만든 RTSPtoWeb을 통신 예제 (상태에 따라서 자동 재실행) 진짜 처리!!!">
+</head>
+<body>
+    <video id="video1" autoplay controls muted playsinline></video>
+    <input type="hidden" name="uuid" id="uuid" value="ibst0552997730">
+    <input type="hidden" name="channel" id="channel" value="1">    
+    <script>
+        const webrtcServerUrl = "http://localhost:8084";
+        const videoEle =  document.getElementById("video1");
+        const inputuuidEle =  document.getElementById("uuid");
+        const inputChannelEle = document.getElementById("channel");
+
+        const inputuuidVal = inputuuidEle.value;
+        const inputChannelVal = inputChannelEle.value;
+        
+        
+
+        const sdpUrl = webrtcServerUrl + "/stream/" + inputuuidVal + "/channel/" + inputChannelVal + "/webrtc?uuid=" + inputuuidVal + '&channel=' + inputChannelVal;
+        let webrtc, webrtcSendChannel, offer;
+        let mediaStream;
+
+        async function run() {
+            // mediaStream 생성함. 
+            // WEBRTC를 연결하기 위해 offer answer 등 과정을 거쳐서 제안으로 협상이 완료되면 자동으로 video 스트이 작동함. 
+            // 해당 오브젝트만 생성하면 로딩창이 뜨면서 스트림을 받을 준비를 함. 
+            // 제안 내용에 video, audio가 있어야 작등을 하겠지?
+            mediaStream = new MediaStream(); 
+            videoEle.srcObject = mediaStream; 
+            
+            console.log('mediaStream', mediaStream);
+
+            
+
+            // RTCPeerConnection 생성 (그냥 외우시오.)
+            webrtc = new RTCPeerConnection({
+                iceServers: [{
+                    urls:["stun:stun.l.google.com:19302"]
+                }]
+            });
+            console.log('webrtcObj :', webrtc);
+            console.log('webrtc.signalingState', webrtc.signalingState);
+
+            // offer 생성 (그냥 외우시오)
+            let offer = await webrtc.createOffer({
+                offerToReceiveAudio : true,
+                offerToReceiveVideo : true
+            });
+
+            console.log('offer : ', offer);
+
+            webrtc.onicecandidate = (e) => { // ICE 후보 탐색 할때 마다 발생됨. setLocalDescription 함수 실행시 발생됨.
+                console.log('onicecandidate e :' , e);
+            }
+
+            webrtc.oniceconnectionstatechange = (e) => { // ICE 후보 변경되면 발행함
+                switch(webrtc.iceConnectionState) {
+                    case "new" :
+                        // ICE 후보 주소를 수집 중이거나 
+                        // RTCPeerConnection.addIceCandidate() 호출을 통해 원격 후보가 제공되기를 기다림
+                        break;
+                    case "checking" :
+                        // 하나 이상의 ICE 후보 주소를 수집하였으나 
+                        // 서로 원격 피어를 연결 허용할 부분을 아직 찾지 못함. 
+                        // ICE 후보를 계속 수집 중
+                        break;                        
+                    case "connected" :
+                        // ICE 후보 중 사용가능한 로컬 및 원격 후보 쌍이 발경되었고 연결이 설정됨. 
+                        // ICE 후보는 여전히 수집중일 수 있으며 더 나은 연결을 사용하기 위해 후보를 서로 확인하고 있을 수 있음.
+                        break;                                                
+                    case "completed" :
+                        // ICE 후보 수집 완료하고 모든 쌍을 서로 확인했으며 모든 구성요소(모든 ICE 후보들)에 대한 연결을 찾음.
+                        break;
+                    case "failed" :
+                        // ICE 후보를 수집 하였고 모든 쌍을 서로 확인 하였지만 모든 구성요소(모든 ICE 후보들)에 대한 연결을 찾지 못함.
+                        // run을 다시 호출
+                        // run();
+                        break;
+                    case "disconnected" :
+                        // 하나 이상에 대해 구성 요소가 여전히 연결되어 있는지 확인하는 데 실패했습니다
+                        // run을 다시 호출
+                        // run();
+                        break;  
+                    case "closed" :
+                        // RTCPeerConnection 가 종료됨.
+                        // run을 다시 호출
+                        // run();
+                        break;          
+                    default:
+                        console.log('ICE 상태를 모르겠다.');
+                        break;
+                }
+                console.log('webrtc.iceConnectionState ', webrtc.iceConnectionState);    
+            }
+
+
+            webrtc.onsignalingstatechange = async (e) => { // 시그널 상태 탐색 이벤트
+                console.log('onsignalingstatechange e :' , e);
+                switch(webrtc.signalingState) {
+                    case "have-local-offer" :
+                        // 로컬에 offer 생성하고 생성된 offer의 sdp를 setLocalDescription에 전달하고 제안이 성공적으로 적용됨.
+                        const formData = new FormData();
+                        formData.append("data", btoa(webrtc.localDescription.sdp)); // 이진 문자열로부터 Base64 인코딩 된 ASCII 문자열을 생성해 반환함.
+                        fetch(sdpUrl, {
+                            method: "POST",
+                            body : formData
+                        }).then((res) => res.text())
+                        .then((data) => {
+                            console.log('data', atob(data)); // Base64 인코딩된 문자열 데이터를 디코딩함.
+                            webrtc.setRemoteDescription(new RTCSessionDescription({
+                                type : "answer",
+                                sdp : atob(data)
+                            }));
+                        }).catch((e) => {
+                            console.log('sdp 에러 발생', e);
+                            // run을 다시 호출
+                            // run();
+                        });
+                        break;
+                    case "stable":
+                        // 시그널 상태가 진행중인 제안 및 답변 교환이 없거나 협상이 완료되고 연결이 설정됨
+                        break;
+                    case "have-remote-offer":
+                        // 원격 peer로 부터 받은 sdp를 RTCPeerConnection.setRemoteDescription()을 설정함.
+                        break;    
+                    case "have-local-pranswer":
+                        // 로컬 피어에서 생성한 Pranswer를 리모트 피어로 전송하였으며, 최종 응답을 기다리는 상태입니다. 
+                        // 이 상태에서는 리모트 피어가 최종 응답(Answer)을 생성하여 로컬 피어로 전송하게 됩니다.
+                        break;
+                    case "have-remote-pranswer":
+                        // 리모트 피어로부터 수신한 Pranswer를 로컬 피어가 수락하고, 최종 응답을 기다리는 상태입니다.
+                        // 로컬 피어가 최종 응답을 생성하고 전송할 준비가 되면 이 상태로 전환됩니다.
+                        break;
+                    case "closed":
+                        // RTCPeerConnection 닫힘.
+                        // run을 다시 호출
+                        // run();
+                        break;
+                    default:
+                        console.log('시그널 상태를 모르겠다.')
+                        break;
+                }
+                console.log('webrtc.signalingState ', webrtc.signalingState);
+            }
+
+            webrtc.ontrack = (e) => {
+                console.log('ontrack e : ', e);
+                mediaStream.addTrack(e.track);
+            }
+            
+            let localDes = await webrtc.setLocalDescription(offer); // setLocalDescription할때 signalingstate가 have-local-offer 상태가 됨.
+        }
+
+        
+
+        run();
+    </script>
+</body>
+</html>
