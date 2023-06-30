@@ -46,19 +46,30 @@
             console.log('webrtcObj :', webrtc);
             console.log('webrtc.signalingState', webrtc.signalingState);
 
-            // offer 생성 (그냥 외우시오)
-            let offer = await webrtc.createOffer({
-                offerToReceiveAudio : true,
-                offerToReceiveVideo : true
-            });
-
-            console.log('offer : ', offer);
+            webrtc.onicegatheringstatechange = (e) => { // ICE 수집 상태를 알려줌.
+                console.log('onicegatheringstatechange : ', webrtc.iceGatheringState);
+                switch(webrtc.iceGatheringState) {
+                    case "new" :
+                        // 피어 연결이 새로 생성되었지만 아직 네트워킹 시작되지 않은 상태 
+                        break;
+                    case "gathering" :
+                        // ICE 후보 수집 중
+                        break;
+                    case "complete" :
+                        // ICE 후보 수집 완료됨
+                        // ICE 서버 추가 또는 ICE 후보 수집하는 상황 발생시 상태가 complete -> gathering 으로 다시 바뀜.
+                        break;
+                    default:
+                        console.log('ICE 상태를 모르겠다.');
+                        break;
+                }
+            }
 
             webrtc.onicecandidate = (e) => { // ICE 후보 탐색 할때 마다 발생됨. setLocalDescription 함수 실행시 발생됨.
                 console.log('onicecandidate e :' , e);
             }
 
-            webrtc.oniceconnectionstatechange = (e) => { // ICE 후보 변경되면 발행함
+            webrtc.oniceconnectionstatechange = (e) => { // ICE 후보 변경되면 발행함 (ICE 후보 현재 상태와 ICE 서버(STUN 또는 TURN)에 대한 연결 상태를 설명)
                 switch(webrtc.iceConnectionState) {
                     case "new" :
                         // ICE 후보 주소를 수집 중이거나 
@@ -152,7 +163,13 @@
                 console.log('ontrack e : ', e);
                 mediaStream.addTrack(e.track);
             }
-            
+
+            // offer 생성 (그냥 외우시오)
+            let offer = await webrtc.createOffer({
+                offerToReceiveAudio : true,
+                offerToReceiveVideo : true
+            });
+            console.log('offer : ', offer);
             let localDes = await webrtc.setLocalDescription(offer); // setLocalDescription할때 signalingstate가 have-local-offer 상태가 됨.
         }
 
