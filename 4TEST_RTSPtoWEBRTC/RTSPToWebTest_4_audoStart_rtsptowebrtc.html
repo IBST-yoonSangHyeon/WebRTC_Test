@@ -24,7 +24,7 @@
         
 
         //const sdpUrl = webrtcServerUrl + "/stream/" + inputuuidVal + "/channel/" + inputChannelVal + "/webrtc?uuid=" + inputuuidVal + '&channel=' + inputChannelVal;
-        const sdpUrl = 'http://localhost:8083/stream/receiver/10.10.27.134';
+        const sdpUrl = 'http://localhost:8083/stream/receiver/10.10.27.136';
         let webrtc, webrtcSendChannel, offer;
         let mediaStream;
 
@@ -49,11 +49,7 @@
             console.log('webrtcObj :', webrtc);
             console.log('webrtc.signalingState', webrtc.signalingState);
 
-            // offer 생성 (그냥 외우시오)
-            let offer = await webrtc.createOffer({
-                offerToReceiveAudio : true,
-                offerToReceiveVideo : true
-            });
+            
 
             webrtc.onicegatheringstatechange = (e) => { // ICE 수집 상태를 알려줌.
                 console.log('onicegatheringstatechange : ', webrtc.iceGatheringState);
@@ -125,6 +121,7 @@
                     case "have-local-offer" :
                         // 로컬에 offer 생성하고 생성된 offer의 sdp를 setLocalDescription에 전달하고 제안이 성공적으로 적용됨.
                         const formData = new FormData();
+                        formData.append("suuid", '10.10.27.134'); 
                         formData.append("data", btoa(webrtc.localDescription.sdp)); // 이진 문자열로부터 Base64 인코딩 된 ASCII 문자열을 생성해 반환함.
                         fetch(sdpUrl, {
                             method: "POST",
@@ -173,6 +170,11 @@
                 mediaStream.addTrack(e.track);
             }
 
+            // offer 생성 (그냥 외우시오)
+            let offer = await webrtc.createOffer({
+                offerToReceiveAudio : true,
+                offerToReceiveVideo : true
+            });
             
             console.log('offer : ', offer);
             let localDes = await webrtc.setLocalDescription(offer); // setLocalDescription할때 signalingstate가 have-local-offer 상태가 됨.
