@@ -49,7 +49,12 @@
             console.log('webrtcObj :', webrtc);
             console.log('webrtc.signalingState', webrtc.signalingState);
 
-            
+
+
+
+            webrtc.onnegotiationneeded = async (e) => {
+                console.log('onnegotiationneeded e', e);
+            }
 
             webrtc.onicegatheringstatechange = (e) => { // ICE 수집 상태를 알려줌.
                 console.log('onicegatheringstatechange : ', webrtc.iceGatheringState);
@@ -100,12 +105,12 @@
                     case "disconnected" :
                         // 하나 이상에 대해 구성 요소가 여전히 연결되어 있는지 확인하는 데 실패했습니다
                         // run을 다시 호출
-                        // run();
+                        run();
                         break;  
                     case "closed" :
                         // RTCPeerConnection 가 종료됨.
                         // run을 다시 호출
-                        // run();
+                        run();
                         break;          
                     default:
                         console.log('ICE 상태를 모르겠다.');
@@ -136,7 +141,7 @@
                         }).catch((e) => {
                             console.log('sdp 에러 발생', e);
                             // run을 다시 호출
-                            // run();
+                            run();
                         });
                         break;
                     case "stable":
